@@ -1,0 +1,98 @@
+---
+- name: install prusabox
+  hosts: prusabox
+  remote_user: pi
+
+  vars:
+    octodash_version: "2.3.1"
+
+  handlers:
+    - name: update-ca-certificates
+      become: yes
+      ansible.builtin.command:
+        cmd: /usr/sbin/update-ca-certificates
+
+  tasks:
+  - name: "install gui"
+    become: yes
+    ansible.builtin.package:
+      name:
+      - xserver-xorg
+      - x11-xserver-utils
+      - xinit
+      - libgtk-3-0
+      - plymouth
+      - plymouth-x11
+      - pix-plym-splash
+
+  - name: "replace plymouth raspberry log for octoprint"
+    become: yes
+    ansible.builtin.copy:
+      src: file/octoprint-splash-240x240.png
+      dest: /usr/share/plymouth/themes/pix/splash.png
+
+
+  - name: "allow systemd to run xinit as user"
+    become: yes
+    ansible.builtin.lineinfile:
+      state: present
+      path: /etc/X11/Xwrapper.config
+      regexp: "^allowed_users=.*"
+      line: "allowed_users=anybody"
+
+  - name: "install octodash dep"
+    become: yes
+    ansible.builtin.package:
+      name:
+      - libgtk-3-0
+      - libnotify4
+      - libnss3
+      - libxss1
+      - libxtst6
+      - xdg-utils
+      - libatspi2.0-0
+      - libuuid1
+      - libappindicator3-1
+      - libsecret-1-0
+      - gir1.2-gnomekeyring-1.0
+
+  - name: "install octodash version {{ octodash_version }}"
+    become: yes
+    ansible.builtin.apt:
+      allow_downgrade: yes
+      autoremove: yes
+      deb: "https://github.com/UnchartedBull/OctoDash/releases/download/v{{ octodash_version }}/octodash_{{ octodash_version }}_armv7l.deb"
+
+  - name: "create pi user .xinitrc"
+    ansible.builtin.copy:
+      src: file/.xinitrc
+      dest: /home/pi/.xinitrc
+      owner: pi
+      group: pi
+
+  - name: "copy octodash service file"
+    become: yes
+    ansible.builtin.copy:
+      src: file/octodash.service
+      dest: /etc/systemd/system/octodash.service
+      owner: root
+      group: root
+
+  - name: "enable and start octodash"
+    become: yes
+    ansible.builtin.systemd:
+      name: octodash.service
+      daemon_reload: yes
+      enabled: yes
+      state: started
+
+  - name: "add custom CAcert"
+    become: yes
+    ansible.builtin.copy:
+      src: file/MainCA.crt
+      dest: /usr/local/share/ca-certificates/
+      owner: root
+      group: ssl-cert
+      mode: "0644"
+    notify:
+      - update-ca-certificates

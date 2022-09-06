@@ -1,0 +1,13 @@
+[Unit]
+Description=Octodash startup script
+After=network.online.target
+Wants=network.online.target
+Before=plymouth-quit.service
+
+[Service]
+User=pi
+Group=pi
+ExecStart=/usr/bin/xinit -- -nocursor 
+
+[Install]
+WantedBy=multi-user.target
