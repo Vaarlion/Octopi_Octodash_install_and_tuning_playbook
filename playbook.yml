@@ -96,3 +96,18 @@
       mode: "0644"
     notify:
       - update-ca-certificates
+
+  - name: "check i2c status"
+    become: yes
+    ansible.builtin.command:
+      cmd: "raspi-config nonint get_i2c"
+    register: i2c_status
+    check_mode: false
+    changed_when: false
+
+  - name: "enable i2c pin"
+    become: yes
+    ansible.builtin.command:
+      cmd: "raspi-config nonint do_i2c 0"
+    when: i2c_status.stdout != "0"
+    changed_when: true
