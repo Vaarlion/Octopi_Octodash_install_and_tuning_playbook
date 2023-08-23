@@ -11,6 +11,7 @@
       become: yes
       ansible.builtin.command:
         cmd: /usr/sbin/update-ca-certificates
+      changed_when: true
 
   tasks:
   - name: "install gui"
